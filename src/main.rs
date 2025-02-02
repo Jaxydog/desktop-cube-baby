@@ -1,3 +1,5 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::marker::PhantomData;
