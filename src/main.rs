@@ -140,7 +140,6 @@ fn main() {
         movable_by_window_background: false,
         has_shadow: false,
         titlebar_shown: false,
-        cursor_options: CursorOptions { hit_test: false, ..CursorOptions::default() },
         ..Window::default()
     };
 
