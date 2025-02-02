@@ -9,9 +9,7 @@ use bevy::asset::io::embedded::EmbeddedAssetRegistry;
 use bevy::image::ImageSampler;
 use bevy::prelude::*;
 use bevy::state::state::FreelyMutableState;
-#[cfg(any(target_os = "linux", target_os = "macos"))]
-use bevy::window::CompositeAlphaMode;
-use bevy::window::{Monitor, PresentMode, PrimaryWindow, WindowLevel, WindowResolution};
+use bevy::window::{CompositeAlphaMode, Monitor, PresentMode, PrimaryWindow, WindowLevel, WindowResolution};
 use bevy::winit::WinitWindows;
 
 const SPRITE_SIDE_LEN: u32 = 32;
@@ -130,7 +128,7 @@ fn main() {
         title: env!("CARGO_BIN_NAME").to_string(),
         #[cfg(target_os = "macos")]
         composite_alpha_mode: CompositeAlphaMode::PostMultiplied,
-        #[cfg(target_os = "linux")]
+        #[cfg(not(target_os = "macos"))]
         composite_alpha_mode: CompositeAlphaMode::PreMultiplied,
         resizable: false,
         decorations: false,
