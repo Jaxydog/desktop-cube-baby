@@ -2,6 +2,8 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::marker::PhantomData;
 
+use bevy::asset::embedded_asset;
+use bevy::asset::io::embedded::EmbeddedAssetRegistry;
 use bevy::image::ImageSampler;
 use bevy::prelude::*;
 use bevy::state::state::FreelyMutableState;
@@ -14,6 +16,7 @@ const SPRITE_SIDE_LEN: u32 = 32;
 const WINDOW_SIDE_LEN: f32 = 256.0;
 const SCALE: f32 = WINDOW_SIDE_LEN / SPRITE_SIDE_LEN as f32;
 const SPIN_DISTANCE: f64 = 10.0 * SCALE as f64;
+const DRAG: f32 = 0.8;
 
 #[cfg(target_os = "macos")]
 compile_error!("sorry cube baby hates macos");
@@ -111,6 +114,7 @@ impl Baby {
         }
     }
 
+    /// Returns the window's expected position.
     fn window_position(&self) -> IVec2 {
         self.position.round().as_ivec2()
     }
@@ -130,15 +134,17 @@ fn main() {
         decorations: false,
         transparent: true,
         window_level: WindowLevel::AlwaysOnBottom,
-        visible: cfg!(debug_assertions),
+        visible: false,
         movable_by_window_background: false,
         has_shadow: false,
         titlebar_shown: false,
         ..Window::default()
     };
 
-    App::new()
-        .add_plugins(DefaultPlugins.set(WindowPlugin { primary_window: Some(window), ..WindowPlugin::default() }))
+    let mut app = App::new();
+
+    app.add_plugins(DefaultPlugins.set(WindowPlugin { primary_window: Some(window), ..WindowPlugin::default() }))
+        .init_resource::<EmbeddedAssetRegistry>()
         .insert_resource(ClearColor(Color::NONE))
         .init_state::<LoadingState<Image>>()
         .init_state::<LoadingState<Monitor>>()
@@ -149,21 +155,30 @@ fn main() {
             (
                 load_texture.run_if(in_state(LoadingState::<Image>::loading())),
                 load_monitor.run_if(in_state(LoadingState::<Monitor>::loading())),
-                update_position
-                    .run_if(in_state(LoadingState::<Image>::loaded()))
-                    .run_if(in_state(LoadingState::<Monitor>::loaded())),
-                handle_inputs
-                    .run_if(in_state(LoadingState::<Image>::loaded()))
-                    .run_if(in_state(LoadingState::<Monitor>::loaded())),
             ),
         )
-        .run();
+        .add_systems(
+            FixedUpdate,
+            handle_inputs
+                .run_if(in_state(LoadingState::<Image>::loaded()))
+                .run_if(in_state(LoadingState::<Monitor>::loaded())),
+        )
+        .add_systems(
+            Update,
+            update_position
+                .run_if(in_state(LoadingState::<Image>::loaded()))
+                .run_if(in_state(LoadingState::<Monitor>::loaded())),
+        );
+
+    embedded_asset!(app, "cube_baby.png");
+
+    app.run();
 }
 
 fn initialize(mut commands: Commands, assets: Res<AssetServer>, mut layouts: ResMut<Assets<TextureAtlasLayout>>) {
     commands.spawn(Camera2d);
 
-    let handle = assets.load("cube_baby.png");
+    let handle = assets.load("embedded://desktop_cube_baby/cube_baby.png");
     let layout = layouts.add(TextureAtlasLayout::from_grid(UVec2::splat(SPRITE_SIDE_LEN), 8, 1, None, None));
     let sprite = Sprite {
         image: handle.clone_weak(),
@@ -205,7 +220,7 @@ fn load_monitor(
     let end_boundary = start_boundary + resolution;
 
     baby.boundaries = (start_boundary, end_boundary);
-    baby.position = start_boundary + (resolution / 2.0);
+    baby.position = start_boundary + (resolution / 2.0) - (Vec2::splat(WINDOW_SIDE_LEN) / 2.0);
 
     state.set(LoadingState::loaded());
 }
@@ -261,7 +276,7 @@ fn update_position(time: Res<Time>, query: Single<(&mut Baby, &mut Sprite)>, mut
     let last_position = baby.position;
 
     baby.position += scaled_velocity;
-    baby.velocity *= (1.0 - time.delta_secs()).clamp(0.0, 1.0);
+    baby.velocity *= (1.0 - (DRAG * time.delta_secs())).clamp(0.0, 1.0);
     baby.spin_distance += last_position.distance(baby.position) as f64;
 
     if baby.spin_distance >= SPIN_DISTANCE {
@@ -269,8 +284,7 @@ fn update_position(time: Res<Time>, query: Single<(&mut Baby, &mut Sprite)>, mut
 
         let atlas = sprite.texture_atlas.as_mut().expect("missing texture atlas");
 
-        atlas.index += 1;
-        atlas.index %= 8;
+        atlas.index = (atlas.index + 1) % 8;
     }
 
     window.position.set(baby.window_position());
