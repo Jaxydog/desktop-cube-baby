@@ -1,0 +1,33 @@
+[package]
+name = "desktop-cube-baby"
+version = "0.1.0"
+edition = "2024"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+
+[dependencies.bevy]
+version = "0.15"
+default-features = false
+features = [
+    "animation",
+    "bevy_animation",
+    "bevy_asset",
+    "bevy_color",
+    "bevy_core_pipeline",
+    "bevy_render",
+    "bevy_sprite",
+    "bevy_state",
+    "bevy_window",
+    "bevy_winit",
+    "multi_threaded",
+    "png",
+    "x11",
+]
