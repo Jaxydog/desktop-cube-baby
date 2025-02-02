@@ -5,13 +5,18 @@ use std::marker::PhantomData;
 use bevy::image::ImageSampler;
 use bevy::prelude::*;
 use bevy::state::state::FreelyMutableState;
-use bevy::window::{CompositeAlphaMode, Monitor, PresentMode, PrimaryWindow, WindowLevel, WindowResolution};
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+use bevy::window::CompositeAlphaMode;
+use bevy::window::{Monitor, PresentMode, PrimaryWindow, WindowLevel, WindowResolution};
 use bevy::winit::WinitWindows;
 
 const SPRITE_SIDE_LEN: u32 = 32;
 const WINDOW_SIDE_LEN: f32 = 256.0;
 const SCALE: f32 = WINDOW_SIDE_LEN / SPRITE_SIDE_LEN as f32;
 const SPIN_DISTANCE: f64 = 10.0 * SCALE as f64;
+
+#[cfg(target_os = "macos")]
+compile_error!("sorry cube baby hates macos");
 
 /// A generic loading state.
 #[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq, States)]
