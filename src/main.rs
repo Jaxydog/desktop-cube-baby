@@ -119,9 +119,9 @@ pub fn main() -> ExitCode {
         // Handle cursor-to-window collision.
         fixed_update_mouse_collision.run_if(in_state(LoadingState::<ApplicationLoadingMarker>::finished()))
     });
-    application.add_systems(FixedUpdate, {
+    application.add_systems(Update, {
         // Handle space-bar knocking.
-        fixed_update_spacebar_knocking.run_if(in_state(LoadingState::<ApplicationLoadingMarker>::finished()))
+        update_spacebar_knocking.run_if(in_state(LoadingState::<ApplicationLoadingMarker>::finished()))
     });
     application.add_systems(Update, {
         // Handle moving the window.
@@ -218,7 +218,7 @@ pub fn on_application_load_finished(
 }
 
 /// Handles knocking the cube baby when the space bar is pressed.
-pub fn fixed_update_spacebar_knocking(
+pub fn update_spacebar_knocking(
     button_input: Res<ButtonInput<KeyCode>>,
     mut velocity: Single<&mut Velocity, With<CubeBaby>>,
 ) {
