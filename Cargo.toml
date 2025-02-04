@@ -13,6 +13,9 @@ opt-level = 3
 codegen-units = 1
 lto = "fat"
 
+[dependencies.fastrand]
+version = "2.3"
+
 [dependencies.bevy]
 version = "0.15"
 default-features = false

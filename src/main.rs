@@ -219,19 +219,17 @@ pub fn on_application_load_finished(
 
 /// Handles knocking the cube baby when the space bar is pressed.
 pub fn fixed_update_spacebar_knocking(
-    time: Res<Time>,
     button_input: Res<ButtonInput<KeyCode>>,
-    query: Single<(&mut Velocity, &mut PushDelay), With<CubeBaby>>,
+    mut velocity: Single<&mut Velocity, With<CubeBaby>>,
 ) {
-    let (mut velocity, mut push_delay) = query.into_inner();
+    const MAX_STRENGTH: f32 = PUSH_STRENGTH * PUSH_STRENGTH * 4.0;
 
-    if *push_delay <= PushDelay::ZERO && button_input.just_pressed(KeyCode::Space) {
-        let x = time.elapsed_secs_wrapped().cos();
-        let y = (time.elapsed_secs_wrapped() * 2.0).cos();
-        let current_strength = velocity.length().clamp(PUSH_STRENGTH, PUSH_STRENGTH.powi(2));
+    if button_input.just_pressed(KeyCode::Space) {
+        let x = (fastrand::f32() * 2.0) - 1.0;
+        let y = (fastrand::f32() * 2.0) - 1.0;
+        let strength = ((fastrand::f32() * MAX_STRENGTH) - PUSH_STRENGTH) + PUSH_STRENGTH;
 
-        velocity.0 += Vec2::new(x, y).normalize_or_zero() * SPRITE_SCALE * current_strength;
-        push_delay.0 = push_delay.0.min(PUSH_DELAY / 2.0);
+        velocity.0 += Vec2::new(x, y).normalize_or_zero() * strength * SPRITE_SCALE;
     }
 }
 

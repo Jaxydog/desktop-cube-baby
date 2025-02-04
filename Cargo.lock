@@ -1455,6 +1455,7 @@ name = "desktop-cube-baby"
 version = "0.2.0"
 dependencies = [
  "bevy",
+ "fastrand",
 ]
 
 [[package]]
