@@ -10,7 +10,7 @@ use bevy::prelude::*;
 use bevy::window::{
     CompositeAlphaMode, EnabledButtons, ExitCondition, PresentMode, PrimaryWindow, WindowLevel, WindowResolution,
 };
-use bevy::winit::WinitWindows;
+use bevy::winit::{UpdateMode, WinitSettings, WinitWindows};
 
 use self::components::{CubeBaby, Distance, Position, PushDelay, Velocity};
 use self::resources::{DisplayProperties, TextureMetadata};
@@ -78,6 +78,10 @@ pub fn main() -> ExitCode {
         exit_condition: ExitCondition::OnPrimaryClosed,
         close_when_requested: true,
     }));
+    application.insert_resource(WinitSettings {
+        focused_mode: UpdateMode::Continuous,
+        unfocused_mode: UpdateMode::Continuous,
+    });
     application.add_systems(Startup, self::startup_initialize);
 
     // Handle display property loading.

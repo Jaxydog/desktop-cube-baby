@@ -27,5 +27,6 @@ features = [
     "bevy_winit",
     "multi_threaded",
     "png",
+    "wayland",
     "x11",
 ]
