@@ -222,12 +222,13 @@ pub fn fixed_update_spacebar_knocking(
     button_input: Res<ButtonInput<KeyCode>>,
     mut velocity: Single<&mut Velocity, With<CubeBaby>>,
 ) {
+    const MIN_STRENGTH: f32 = PUSH_STRENGTH * PUSH_STRENGTH;
     const MAX_STRENGTH: f32 = PUSH_STRENGTH * PUSH_STRENGTH * 4.0;
 
     if button_input.just_pressed(KeyCode::Space) {
         let x = (fastrand::f32() * 2.0) - 1.0;
         let y = (fastrand::f32() * 2.0) - 1.0;
-        let strength = ((fastrand::f32() * MAX_STRENGTH) - PUSH_STRENGTH) + PUSH_STRENGTH;
+        let strength = ((fastrand::f32() * MAX_STRENGTH) - MIN_STRENGTH) + MIN_STRENGTH;
 
         velocity.0 += Vec2::new(x, y).normalize_or_zero() * strength * SPRITE_SCALE;
     }
