@@ -39,7 +39,7 @@ pub const SLIDE_SPIN_DISTANCE: f32 = 10.0;
 #[inline]
 pub fn window_settings() -> Window {
     Window {
-        present_mode: PresentMode::Mailbox,
+        present_mode: PresentMode::AutoVsync,
         resolution: WindowResolution::new(WINDOW_SIZE, WINDOW_SIZE),
         title: env!("CARGO_BIN_NAME").to_string(),
         composite_alpha_mode: if cfg!(target_os = "linux") {
