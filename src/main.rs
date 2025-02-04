@@ -225,7 +225,7 @@ pub fn fixed_update_spacebar_knocking(
     const MIN_STRENGTH: f32 = PUSH_STRENGTH * PUSH_STRENGTH;
     const MAX_STRENGTH: f32 = PUSH_STRENGTH * PUSH_STRENGTH * 4.0;
 
-    if button_input.just_pressed(KeyCode::Space) {
+    if button_input.get_just_pressed().next().is_some() {
         let x = (fastrand::f32() * 2.0) - 1.0;
         let y = (fastrand::f32() * 2.0) - 1.0;
         let strength = ((fastrand::f32() * MAX_STRENGTH) - MIN_STRENGTH) + MIN_STRENGTH;
