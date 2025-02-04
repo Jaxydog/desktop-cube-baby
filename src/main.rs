@@ -119,6 +119,10 @@ pub fn main() -> ExitCode {
         // Handle cursor-to-window collision.
         fixed_update_mouse_collision.run_if(in_state(LoadingState::<ApplicationLoadingMarker>::finished()))
     });
+    application.add_systems(FixedUpdate, {
+        // Handle space-bar knocking.
+        fixed_update_spacebar_knocking.run_if(in_state(LoadingState::<ApplicationLoadingMarker>::finished()))
+    });
     application.add_systems(Update, {
         // Handle moving the window.
         update_window_movement.run_if(in_state(LoadingState::<ApplicationLoadingMarker>::finished()))
@@ -211,6 +215,24 @@ pub fn on_application_load_finished(
 
     window.position.set(position.round().as_ivec2());
     window.visible = true;
+}
+
+/// Handles knocking the cube baby when the space bar is pressed.
+pub fn fixed_update_spacebar_knocking(
+    time: Res<Time>,
+    button_input: Res<ButtonInput<KeyCode>>,
+    query: Single<(&mut Velocity, &mut PushDelay), With<CubeBaby>>,
+) {
+    let (mut velocity, mut push_delay) = query.into_inner();
+
+    if *push_delay <= PushDelay::ZERO && button_input.just_pressed(KeyCode::Space) {
+        let x = ((time.elapsed_secs_f64() % 360.0) / 180.0) - 1.0;
+        let y = (((time.elapsed_secs_f64() * 2.0) % 360.0) / 180.0) - 1.0;
+        let current_strength = velocity.length().clamp(PUSH_STRENGTH, PUSH_STRENGTH.powi(2));
+
+        velocity.0 += Vec2::new(x as f32, y as f32) * SPRITE_SCALE * current_strength;
+        push_delay.0 = push_delay.0.min(PUSH_DELAY / 2.0);
+    }
 }
 
 /// Handles updating the cube baby's velocity based off of mouse interactions.
