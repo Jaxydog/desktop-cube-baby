@@ -229,8 +229,9 @@ pub fn fixed_update_spacebar_knocking(
         let x = (fastrand::f32() * 2.0) - 1.0;
         let y = (fastrand::f32() * 2.0) - 1.0;
         let strength = ((fastrand::f32() * MAX_STRENGTH) - MIN_STRENGTH) + MIN_STRENGTH;
+        let movement = velocity.normalize_or_zero() + Vec2::new(x, y).normalize_or_zero();
 
-        velocity.0 += Vec2::new(x, y).normalize_or_zero() * strength * SPRITE_SCALE;
+        velocity.0 += movement * strength * SPRITE_SCALE;
     }
 }
 
