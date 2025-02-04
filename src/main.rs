@@ -226,11 +226,11 @@ pub fn fixed_update_spacebar_knocking(
     let (mut velocity, mut push_delay) = query.into_inner();
 
     if *push_delay <= PushDelay::ZERO && button_input.just_pressed(KeyCode::Space) {
-        let x = ((time.elapsed_secs_f64() % 360.0) / 180.0) - 1.0;
-        let y = (((time.elapsed_secs_f64() * 2.0) % 360.0) / 180.0) - 1.0;
+        let x = time.elapsed_secs_wrapped().cos();
+        let y = (time.elapsed_secs_wrapped() * 2.0).cos();
         let current_strength = velocity.length().clamp(PUSH_STRENGTH, PUSH_STRENGTH.powi(2));
 
-        velocity.0 += Vec2::new(x as f32, y as f32) * SPRITE_SCALE * current_strength;
+        velocity.0 += Vec2::new(x, y).normalize_or_zero() * SPRITE_SCALE * current_strength;
         push_delay.0 = push_delay.0.min(PUSH_DELAY / 2.0);
     }
 }
