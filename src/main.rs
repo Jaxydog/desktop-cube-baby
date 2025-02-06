@@ -315,5 +315,6 @@ pub fn update_sprite_rotation(query: Single<(&mut Sprite, &mut Distance), With<C
         texture_atlas.index = (texture_atlas.index + 1) % ATLAS_FRAMES as usize;
 
         distance.0 -= SLIDE_SPIN_DISTANCE * SPRITE_SCALE;
+        distance.0 %= SLIDE_SPIN_DISTANCE * SPRITE_SCALE;
     }
 }
