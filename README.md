@@ -30,6 +30,17 @@ cp ./target/release/desktop-cube-baby /path/to/destination
 cargo clean
 ```
 
+You may optionally enable specific feature flags to enable additional functionality:
+
+- `multi_threaded` - Use multiple threads to update and render the application.
+- `visible_console` - Display the internal console on Windows builds.
+- `wayland` - Allow the application to render using Wayland.
+- `x11` - Allow the application to render using X11.
+
+To use these flag(s),
+add `--features` followed by a comma-separated list of flags
+to the `cargo build` command.
+
 ## Usage
 
 To use Desktop Cube Baby,
