@@ -12,24 +12,18 @@ Desktop Cube Baby can be installed through one of the following methods:
 
 Desktop Cube Baby's latest releases will be available through [this repository's 'releases' section][1].
 
-### Install through Cargo
-
-You can install Desktop Cube Baby directly through [Cargo][2],
-the package manager for The Rust Programming Language.
-This will download, compile,
-and then install Desktop Cube Baby directly from this repository.
-
-```sh
-cargo install --git https://github.com/Jaxydog/desktop-cube-baby.git --locked
-```
-
-### Install manually
+### Compile from source
 
 You may alternatively download Desktop Cube Baby's source code directly,
 compile, and install it yourself.
 
+Please note that the texture must be extracted manually,
+however,
+as it is not distributed with this repository.
+The extracted file must be placed within `./src/cube_baby.png`.
+
 ```sh
-git clone https://github.com/Jaxydog/desktop-cube-baby.git \
+git clone https://github.com/Jaxydog/desktop-cube-baby.git
 cd ./desktop-cube-baby
 cargo build --release
 cp ./target/release/desktop-cube-baby /path/to/destination
@@ -66,4 +60,3 @@ You should have received a copy of the GNU General Public License along with Des
 If not, see <https://www.gnu.org/licenses/>.
 
 [1]: https://github.com/Jaxydog/desktop-cube-baby/releases
-[2]: https://doc.rust-lang.org/cargo/
