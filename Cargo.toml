@@ -23,6 +23,8 @@ edition = "2024"
 [features]
 multi_threaded = ["bevy/multi_threaded"]
 visible_console = []
+wayland = ["bevy/wayland"]
+x11 = ["bevy/x11"]
 
 [profile.dev]
 opt-level = 1
@@ -50,6 +52,4 @@ features = [
     "bevy_window",
     "bevy_winit",
     "png",
-    "wayland",
-    "x11",
 ]
