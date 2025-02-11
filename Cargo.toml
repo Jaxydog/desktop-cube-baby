@@ -20,6 +20,10 @@ name = "desktop-cube-baby"
 version = "0.2.0"
 edition = "2024"
 
+[features]
+multi_threaded = ["bevy/multi_threaded"]
+visible_console = []
+
 [profile.dev]
 opt-level = 1
 
@@ -45,7 +49,6 @@ features = [
     "bevy_state",
     "bevy_window",
     "bevy_winit",
-    "multi_threaded",
     "png",
     "wayland",
     "x11",
