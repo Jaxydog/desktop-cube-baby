@@ -342,9 +342,12 @@ pub fn update_window_movement(
     let window_resolution = scale.window_resolution();
     let window_size = window_resolution.width();
     let window_size_difference = window_resolution.width() - window.resolution.width();
+    let window_size_percentage = window_resolution.width() / window.resolution.width();
 
-    position.x += window_size_difference;
-    position.y += window_size_difference;
+    position.x -= window_size_difference / 2.0;
+    position.y -= window_size_difference / 2.0;
+    velocity.x *= window_size_percentage;
+    velocity.y *= window_size_percentage;
 
     window.resolution = window_resolution;
     window.resize_constraints = scale.window_resize_constraints();
