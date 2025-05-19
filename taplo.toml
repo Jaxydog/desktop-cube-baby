@@ -19,4 +19,3 @@
 allowed_blank_lines = 1
 column_width = 120
 indent_string = "    "
-reorder_arrays = true
