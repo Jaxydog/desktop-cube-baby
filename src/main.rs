@@ -141,7 +141,7 @@ pub fn main() -> ExitCode {
     });
     application.add_systems(Update, {
         // Handle space-bar knocking.
-        update_spacebar_knocking.run_if(in_state(LoadingState::<ApplicationLoadingMarker>::finished()))
+        update_key_press_knocking.run_if(in_state(LoadingState::<ApplicationLoadingMarker>::finished()))
     });
     application.add_systems(Update, {
         // Handle moving the window.
@@ -238,7 +238,7 @@ pub fn on_application_load_finished(
 }
 
 /// Handles knocking the cube baby when the space bar is pressed.
-pub fn update_spacebar_knocking(
+pub fn update_key_press_knocking(
     button_input: Res<ButtonInput<KeyCode>>,
     mut velocity: Single<&mut Velocity, With<CubeBaby>>,
 ) {
