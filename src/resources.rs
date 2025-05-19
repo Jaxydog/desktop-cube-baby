@@ -17,7 +17,7 @@
 
 use bevy::prelude::*;
 
-use crate::{ATLAS_FRAMES, WINDOW_SIZE};
+use crate::{ATLAS_FRAMES, WINDOW_SIZE_DEFAULT};
 
 /// Contains metadata relating to an atlased texture.
 #[derive(Clone, Debug, PartialEq, Eq, Resource)]
@@ -39,7 +39,7 @@ impl TextureMetadata {
     /// Returns the calculated sprite scale.
     #[inline]
     pub fn sprite_scale(&self) -> Vec2 {
-        Vec2::splat(WINDOW_SIZE) / self.frame_size().as_vec2()
+        Vec2::splat(WINDOW_SIZE_DEFAULT) / self.frame_size().as_vec2()
     }
 }
 

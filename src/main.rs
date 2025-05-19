@@ -29,6 +29,7 @@ use bevy::window::{
     CompositeAlphaMode, EnabledButtons, ExitCondition, PresentMode, PrimaryWindow, WindowLevel, WindowResolution,
 };
 use bevy::winit::{UpdateMode, WinitSettings, WinitWindows};
+use components::Scale;
 
 use self::components::{CubeBaby, Distance, Position, PushDelay, Velocity};
 use self::resources::{DisplayProperties, TextureMetadata};
@@ -40,10 +41,14 @@ pub mod states;
 
 /// The number of frames in the baby's texture atlas animation.
 pub const ATLAS_FRAMES: u32 = 8;
-/// The image scale of the sprite.
-pub const SPRITE_SCALE: f32 = 2.0;
+/// The minimum image scale of the sprite.
+pub const SPRITE_SCALE_MINIMUM: f32 = 0.5;
+/// The maximum image scale of the sprite.
+pub const SPRITE_SCALE_MAXIMUM: f32 = 5.0;
+/// The default image scale of the sprite.
+pub const SPRITE_SCALE_DEFAULT: f32 = 2.0;
 /// The size of one side of the spawned window.
-pub const WINDOW_SIZE: f32 = 32.0 * SPRITE_SCALE;
+pub const WINDOW_SIZE_DEFAULT: f32 = 32.0 * SPRITE_SCALE_DEFAULT;
 /// The strength that the cube baby is pushed at when touched by the cursor.
 pub const PUSH_STRENGTH: f32 = 16.0;
 /// The amount of time in seconds between possible cube baby pushes.
@@ -58,7 +63,7 @@ pub const SLIDE_SPIN_DISTANCE: f32 = 10.0;
 pub fn window_settings() -> Window {
     Window {
         present_mode: PresentMode::AutoNoVsync,
-        resolution: WindowResolution::new(WINDOW_SIZE, WINDOW_SIZE),
+        resolution: WindowResolution::new(WINDOW_SIZE_DEFAULT, WINDOW_SIZE_DEFAULT),
         title: env!("CARGO_BIN_NAME").to_string(),
         composite_alpha_mode: if cfg!(target_os = "macos") {
             CompositeAlphaMode::PostMultiplied
@@ -66,10 +71,10 @@ pub fn window_settings() -> Window {
             CompositeAlphaMode::Auto
         },
         resize_constraints: WindowResizeConstraints {
-            min_width: WINDOW_SIZE,
-            min_height: WINDOW_SIZE,
-            max_width: WINDOW_SIZE,
-            max_height: WINDOW_SIZE,
+            min_width: WINDOW_SIZE_DEFAULT,
+            min_height: WINDOW_SIZE_DEFAULT,
+            max_width: WINDOW_SIZE_DEFAULT,
+            max_height: WINDOW_SIZE_DEFAULT,
         },
         resizable: false,
         enabled_buttons: EnabledButtons { minimize: false, maximize: false, close: false },
@@ -140,7 +145,11 @@ pub fn main() -> ExitCode {
         fixed_update_mouse_collision.run_if(in_state(LoadingState::<ApplicationLoadingMarker>::finished()))
     });
     application.add_systems(Update, {
-        // Handle space-bar knocking.
+        // Handle sprite resizing.
+        update_sprite_resizing.run_if(in_state(LoadingState::<ApplicationLoadingMarker>::finished()))
+    });
+    application.add_systems(Update, {
+        // Handle key knocking.
         update_key_press_knocking.run_if(in_state(LoadingState::<ApplicationLoadingMarker>::finished()))
     });
     application.add_systems(Update, {
@@ -229,9 +238,18 @@ pub fn on_application_load_finished(
     let texture_atlas = TextureAtlas { index: 0, layout: texture_metadata.layout_handle.clone_weak() };
     let sprite = Sprite::from_atlas_image(texture_metadata.image_handle.clone_weak(), texture_atlas);
     let transform = Transform::from_scale(texture_metadata.sprite_scale().xyy());
-    let position = Position(display_properties.center_position().as_vec2() - (WINDOW_SIZE / 2.0));
+    let position = Position(display_properties.center_position().as_vec2() - (WINDOW_SIZE_DEFAULT / 2.0));
 
-    commands.spawn((CubeBaby, sprite, transform, position, Velocity::ZERO, PushDelay::ZERO, Distance::ZERO));
+    commands.spawn((
+        CubeBaby,
+        sprite,
+        transform,
+        position,
+        Velocity::ZERO,
+        PushDelay::ZERO,
+        Distance::ZERO,
+        Scale::default(),
+    ));
 
     window.position.set(position.round().as_ivec2());
     window.visible = true;
@@ -240,18 +258,39 @@ pub fn on_application_load_finished(
 /// Handles knocking the cube baby when the space bar is pressed.
 pub fn update_key_press_knocking(
     button_input: Res<ButtonInput<KeyCode>>,
-    mut velocity: Single<&mut Velocity, With<CubeBaby>>,
+    query: Single<(&mut Velocity, &Scale), With<CubeBaby>>,
 ) {
     const MIN_STRENGTH: f32 = PUSH_STRENGTH * PUSH_STRENGTH;
     const MAX_STRENGTH: f32 = PUSH_STRENGTH * PUSH_STRENGTH * 4.0;
 
-    if button_input.get_just_pressed().next().is_some() {
+    let (mut velocity, scale) = query.into_inner();
+
+    if button_input
+        .get_just_pressed()
+        .next()
+        .is_some_and(|k| !matches!(k, KeyCode::Period | KeyCode::Comma | KeyCode::Slash))
+    {
         let x = (fastrand::f32() * 2.0) - 1.0;
         let y = (fastrand::f32() * 2.0) - 1.0;
         let strength = ((fastrand::f32() * MAX_STRENGTH) - MIN_STRENGTH) + MIN_STRENGTH;
         let movement = velocity.normalize_or_zero() + Vec2::new(x, y).normalize_or_zero();
 
-        velocity.0 += movement * strength * SPRITE_SCALE;
+        velocity.0 += movement * strength * scale.0;
+    }
+}
+
+/// Handles resizing the sprite when certain keys are pressed.
+pub fn update_sprite_resizing(button_input: Res<ButtonInput<KeyCode>>, scale: Single<&mut Scale, With<CubeBaby>>) {
+    if button_input.just_pressed(KeyCode::Period)
+        && let Some(next) = scale.next_increase()
+    {
+        *scale.into_inner() = next;
+    } else if button_input.just_pressed(KeyCode::Comma)
+        && let Some(next) = scale.next_decrease()
+    {
+        *scale.into_inner() = next;
+    } else if button_input.just_pressed(KeyCode::Slash) {
+        *scale.into_inner() = Scale::default();
     }
 }
 
@@ -276,11 +315,11 @@ pub fn fixed_update_mouse_collision(
 
     if let Some((start_position, final_position)) = start_position.zip(final_position) {
         let delta_position = final_position - start_position;
-        let mut delta_position = delta_position * PUSH_STRENGTH * SPRITE_SCALE;
+        let mut delta_position = delta_position * PUSH_STRENGTH * SPRITE_SCALE_DEFAULT;
 
         // Ensure that the cube baby is always pushed with a minimum strength.
-        if delta_position.length() < PUSH_STRENGTH * SPRITE_SCALE {
-            delta_position = delta_position.normalize_or_zero() * PUSH_STRENGTH * SPRITE_SCALE;
+        if delta_position.length() < PUSH_STRENGTH * SPRITE_SCALE_DEFAULT {
+            delta_position = delta_position.normalize_or_zero() * PUSH_STRENGTH * SPRITE_SCALE_DEFAULT;
         }
 
         velocity.0 += delta_position;
@@ -292,49 +331,62 @@ pub fn fixed_update_mouse_collision(
 pub fn update_window_movement(
     mut window: Single<&mut Window, With<PrimaryWindow>>,
     time: Res<Time>,
-    query: Single<(&mut Velocity, &mut Position, &mut Distance), With<CubeBaby>>,
+    query: Single<(&mut Velocity, &mut Position, &mut Distance, &Scale), With<CubeBaby>>,
     display_properties: Res<DisplayProperties>,
 ) {
-    let (mut velocity, mut position, mut distance) = query.into_inner();
+    let (mut velocity, mut position, mut distance, scale) = query.into_inner();
 
     let minimum_position = display_properties.minimum_position().as_vec2();
     let maximum_position = display_properties.maximum_position().as_vec2();
 
+    let window_resolution = scale.window_resolution();
+    let window_size = window_resolution.width();
+    let window_size_difference = window_resolution.width() - window.resolution.width();
+
+    position.x += window_size_difference;
+    position.y += window_size_difference;
+
+    window.resolution = window_resolution;
+    window.resize_constraints = scale.window_resize_constraints();
+
     if position.x < minimum_position.x {
         position.x = minimum_position.x;
         velocity.x = velocity.x.abs();
-    } else if position.x + WINDOW_SIZE > maximum_position.x {
-        position.x = maximum_position.x - WINDOW_SIZE;
+    } else if position.x + window_size > maximum_position.x {
+        position.x = maximum_position.x - window_size;
         velocity.x = -velocity.x.abs();
     }
 
     if position.y < minimum_position.y {
         position.y = minimum_position.y;
         velocity.y = velocity.y.abs();
-    } else if position.y + WINDOW_SIZE > maximum_position.y {
-        position.y = maximum_position.y - WINDOW_SIZE;
+    } else if position.y + window_size > maximum_position.y {
+        position.y = maximum_position.y - window_size;
         velocity.y = -velocity.y.abs();
     }
 
     let start_position = position.0;
 
     position.0 += velocity.0 * time.delta_secs();
-    velocity.0 *= (1.0 - (SLIDE_DRAG * SPRITE_SCALE * time.delta_secs())).clamp(0.0, 1.0);
+    velocity.0 *= (1.0 - (SLIDE_DRAG * SPRITE_SCALE_DEFAULT * time.delta_secs())).clamp(0.0, 1.0);
     distance.0 += start_position.distance(position.0);
 
     window.position.set(position.round().as_ivec2());
 }
 
 /// Updates the sprite's atlas index to make the cube baby rotate as it moves.
-pub fn update_sprite_rotation(query: Single<(&mut Sprite, &mut Distance), With<CubeBaby>>) {
-    let (mut sprite, mut distance) = query.into_inner();
+pub fn update_sprite_rotation(query: Single<(&mut Sprite, &mut Transform, &mut Distance, &Scale), With<CubeBaby>>) {
+    let (mut sprite, mut transform, mut distance, scale) = query.into_inner();
 
-    if distance.0 >= SLIDE_SPIN_DISTANCE * SPRITE_SCALE {
+    transform.scale.x = scale.0;
+    transform.scale.y = scale.0;
+
+    if distance.0 >= SLIDE_SPIN_DISTANCE * SPRITE_SCALE_DEFAULT {
         let texture_atlas = sprite.texture_atlas.as_mut().expect("missing texture atlas");
 
         texture_atlas.index = (texture_atlas.index + 1) % ATLAS_FRAMES as usize;
 
-        distance.0 -= SLIDE_SPIN_DISTANCE * SPRITE_SCALE;
-        distance.0 %= SLIDE_SPIN_DISTANCE * SPRITE_SCALE;
+        distance.0 -= SLIDE_SPIN_DISTANCE * SPRITE_SCALE_DEFAULT;
+        distance.0 %= SLIDE_SPIN_DISTANCE * SPRITE_SCALE_DEFAULT;
     }
 }

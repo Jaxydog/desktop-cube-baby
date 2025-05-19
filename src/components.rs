@@ -18,6 +18,7 @@
 use std::fmt::Debug;
 
 use bevy::prelude::*;
+use bevy::window::WindowResolution;
 
 /// Marker component for values that belong to the cube baby.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Component)]
@@ -54,6 +55,55 @@ impl Position {
     #[inline]
     pub const fn new(x: f32, y: f32) -> Self {
         Self(Vec2::new(x, y))
+    }
+}
+
+/// Represents a persistent scale.
+#[repr(transparent)]
+#[derive(Clone, Copy, Debug, PartialEq, Component, Deref, DerefMut)]
+pub struct Scale(pub f32);
+
+impl Scale {
+    /// Returns the next [`Scale`] increase, if available.
+    pub const fn next_increase(self) -> Option<Self> {
+        let scale = self.0 * 1.1;
+
+        if scale <= crate::SPRITE_SCALE_MAXIMUM { Some(Self(scale)) } else { None }
+    }
+
+    /// Returns the next [`Scale`] decrease, if available.
+    pub const fn next_decrease(self) -> Option<Self> {
+        let scale = self.0 * 0.9;
+
+        if scale >= crate::SPRITE_SCALE_MINIMUM { Some(Self(scale)) } else { None }
+    }
+
+    /// Returns the window size of this [`Scale`].
+    const fn window_size(&self) -> f32 {
+        32.0 * self.0
+    }
+
+    /// Returns the window resolution for this [`Scale`].
+    pub fn window_resolution(&self) -> WindowResolution {
+        WindowResolution::new(self.window_size(), self.window_size())
+    }
+
+    /// Returns the window resize constraints of this [`Scale`].
+    pub fn window_resize_constraints(&self) -> WindowResizeConstraints {
+        let resolution = self.window_resolution();
+
+        WindowResizeConstraints {
+            min_width: resolution.width(),
+            min_height: resolution.height(),
+            max_width: resolution.width(),
+            max_height: resolution.height(),
+        }
+    }
+}
+
+impl Default for Scale {
+    fn default() -> Self {
+        Self(crate::SPRITE_SCALE_DEFAULT)
     }
 }
 
