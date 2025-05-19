@@ -60,9 +60,7 @@ pub fn window_settings() -> Window {
         present_mode: PresentMode::AutoNoVsync,
         resolution: WindowResolution::new(WINDOW_SIZE, WINDOW_SIZE),
         title: env!("CARGO_BIN_NAME").to_string(),
-        composite_alpha_mode: if cfg!(target_os = "linux") {
-            CompositeAlphaMode::PreMultiplied
-        } else if cfg!(target_os = "macos") {
+        composite_alpha_mode: if cfg!(target_os = "macos") {
             CompositeAlphaMode::PostMultiplied
         } else {
             CompositeAlphaMode::Auto
