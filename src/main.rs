@@ -77,6 +77,7 @@ pub fn window_settings() -> Window {
         enabled_buttons: EnabledButtons { minimize: false, maximize: false, close: false },
         decorations: false,
         transparent: true,
+        titlebar_transparent: true,
         focused: true,
         window_level: WindowLevel::AlwaysOnTop,
         visible: false,
