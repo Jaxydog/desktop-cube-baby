@@ -36,13 +36,8 @@ opt-level = 3
 codegen-units = 1
 lto = "fat"
 
-[dependencies]
-
-[dependencies.fastrand]
-version = "2.3"
-
 [dependencies.bevy]
-version = "0.16"
+version = "~0.16"
 default-features = false
 features = [
     "bevy_asset",
@@ -55,3 +50,10 @@ features = [
     "bevy_winit",
     "png",
 ]
+
+[dependencies.fastrand]
+version = "~2.3"
+
+[dependencies.log]
+version = "~0.4"
+features = ["max_level_debug", "release_max_level_warn"]
