@@ -51,6 +51,9 @@ features = [
     "png",
 ]
 
+[dependencies.env_logger]
+version = "~0.11"
+
 [dependencies.fastrand]
 version = "~2.3"
 

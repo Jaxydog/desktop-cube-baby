@@ -87,6 +87,8 @@ pub fn window_settings() -> Window {
 
 /// The application's entrypoint.
 pub fn main() -> ExitCode {
+    env_logger::init();
+
     let mut application = App::new();
 
     // Initialize required components on startup.
