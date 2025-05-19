@@ -22,8 +22,8 @@ use std::process::ExitCode;
 
 use bevy::asset::embedded_asset;
 use bevy::asset::io::embedded::EmbeddedAssetRegistry;
+use bevy::diagnostic::LogDiagnosticsPlugin;
 use bevy::image::ImageSampler;
-use bevy::log::{Level, LogPlugin};
 use bevy::prelude::*;
 use bevy::window::{
     CompositeAlphaMode, EnabledButtons, ExitCondition, PresentMode, PrimaryWindow, WindowLevel, WindowResolution,
@@ -90,24 +90,13 @@ pub fn window_settings() -> Window {
 pub fn main() -> ExitCode {
     let mut application = App::new();
 
-    let log_level = if cfg!(debug_assertions) {
-        Level::DEBUG
-    } else if cfg!(feature = "visible_console") {
-        Level::INFO
-    } else {
-        Level::WARN
-    };
-
     // Initialize required components on startup.
-    application.add_plugins(
-        DefaultPlugins
-            .set(WindowPlugin {
-                primary_window: Some(self::window_settings()),
-                exit_condition: ExitCondition::OnPrimaryClosed,
-                close_when_requested: true,
-            })
-            .set(LogPlugin { level: log_level, ..LogPlugin::default() }),
-    );
+    application.add_plugins(DefaultPlugins.set(WindowPlugin {
+        primary_window: Some(self::window_settings()),
+        exit_condition: ExitCondition::OnPrimaryClosed,
+        close_when_requested: true,
+    }));
+    application.add_plugins(LogDiagnosticsPlugin { debug: cfg!(debug_assertions), ..LogDiagnosticsPlugin::default() });
     application.insert_resource(WinitSettings {
         focused_mode: UpdateMode::Continuous,
         unfocused_mode: UpdateMode::Continuous,
