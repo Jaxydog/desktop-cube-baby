@@ -36,11 +36,13 @@ opt-level = 3
 codegen-units = 1
 lto = "fat"
 
+[dependencies]
+
 [dependencies.fastrand]
 version = "2.3"
 
 [dependencies.bevy]
-version = "0.15"
+version = "0.16"
 default-features = false
 features = [
     "bevy_asset",
