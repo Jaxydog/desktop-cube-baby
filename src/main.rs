@@ -25,6 +25,8 @@ use bevy::asset::io::embedded::EmbeddedAssetRegistry;
 use bevy::diagnostic::LogDiagnosticsPlugin;
 use bevy::image::ImageSampler;
 use bevy::prelude::*;
+use bevy::render::RenderPlugin;
+use bevy::render::settings::RenderCreation;
 use bevy::window::{
     CompositeAlphaMode, EnabledButtons, ExitCondition, PresentMode, PrimaryWindow, WindowLevel, WindowResolution,
 };
@@ -90,6 +92,32 @@ pub fn window_settings() -> Window {
     }
 }
 
+/// Detects if the application is currently running in a Wayland session.
+#[inline]
+#[cfg(feature = "wayland")]
+pub fn is_wayland() -> bool {
+    std::env::var("XDG_SESSION_TYPE").is_ok_and(|session_type| session_type == "wayland")
+        || std::env::var("WAYLAND_DISPLAY").is_ok_and(|socket_name| !socket_name.is_empty())
+        || std::env::var("WAYLAND_SOCKET").is_ok_and(|socket_fd| !socket_fd.is_empty())
+}
+
+/// Select the appropriate [`RenderCreation`]. Forces Vulkan on Wayland, uses the default value
+/// otherwise.
+///
+/// Fixes <https://github.com/bevyengine/bevy/issues/13923>.
+#[inline]
+fn render_creation() -> RenderCreation {
+    #[cfg(feature = "wayland")]
+    if self::is_wayland() {
+        return RenderCreation::Automatic(bevy::render::settings::WgpuSettings {
+            backends: Some(bevy::render::settings::Backends::VULKAN),
+            ..bevy::render::settings::WgpuSettings::default()
+        });
+    }
+
+    RenderCreation::default()
+}
+
 /// The application's entrypoint.
 pub fn main() -> ExitCode {
     env_logger::init();
@@ -97,11 +125,15 @@ pub fn main() -> ExitCode {
     let mut application = App::new();
 
     // Initialize required components on startup.
-    application.add_plugins(DefaultPlugins.set(WindowPlugin {
-        primary_window: Some(self::window_settings()),
-        exit_condition: ExitCondition::OnPrimaryClosed,
-        close_when_requested: true,
-    }));
+    application.add_plugins(
+        DefaultPlugins
+            .set(WindowPlugin {
+                primary_window: Some(self::window_settings()),
+                exit_condition: ExitCondition::OnPrimaryClosed,
+                close_when_requested: true,
+            })
+            .set(RenderPlugin { render_creation: self::render_creation(), ..RenderPlugin::default() }),
+    );
     application.add_plugins(LogDiagnosticsPlugin { debug: cfg!(debug_assertions), ..LogDiagnosticsPlugin::default() });
     application.insert_resource(WinitSettings {
         focused_mode: UpdateMode::Continuous,
