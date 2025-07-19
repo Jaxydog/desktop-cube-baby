@@ -24,6 +24,11 @@ use bevy::state::state::{FreelyMutableState, States};
 /// A trait marker for types intended to be used for loading states.
 pub trait LoadingTypeMarker: Send + Sync + 'static {}
 
+/// The type marker used for the audio loading state.
+pub enum AudioLoadingMarker {}
+
+impl LoadingTypeMarker for AudioLoadingMarker {}
+
 /// The type marker used for the texture loading state.
 pub enum TextureLoadingMarker {}
 

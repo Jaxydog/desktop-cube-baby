@@ -22,6 +22,7 @@ use std::process::ExitCode;
 
 use bevy::asset::embedded_asset;
 use bevy::asset::io::embedded::EmbeddedAssetRegistry;
+use bevy::audio::Volume;
 use bevy::diagnostic::LogDiagnosticsPlugin;
 use bevy::image::ImageSampler;
 use bevy::prelude::*;
@@ -36,6 +37,8 @@ use components::Scale;
 use self::components::{CubeBaby, Distance, Position, PushDelay, Velocity};
 use self::resources::{DisplayProperties, TextureMetadata};
 use self::states::{ApplicationLoadingMarker, DisplayLoadingMarker, LoadingState, TextureLoadingMarker};
+use crate::resources::AudioMetadata;
+use crate::states::AudioLoadingMarker;
 
 pub mod components;
 pub mod resources;
@@ -59,6 +62,10 @@ pub const PUSH_DELAY: f64 = 0.25;
 pub const SLIDE_DRAG: f32 = 0.25;
 /// The distance required before updating the cube baby's sprite.
 pub const SLIDE_SPIN_DISTANCE: f32 = 10.0;
+
+/// The event fired when the cube baby is hit.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Event)]
+pub struct CubeBabyKickAudioEvent;
 
 /// Returns a new settings object for the primary window of this application.
 #[inline]
@@ -149,22 +156,32 @@ pub fn main() -> ExitCode {
         self::update_display_loading.run_if(in_state(LoadingState::<DisplayLoadingMarker>::loading()))
     });
 
-    // Handle texture asset loading.
-    application.init_state::<LoadingState<TextureLoadingMarker>>();
+    // Handle asset loading.
     application.init_resource::<EmbeddedAssetRegistry>();
-    application.add_systems(Update, {
-        // Attempt to update the texture assets until fully loaded.
-        self::update_texture_loading.run_if(in_state(LoadingState::<TextureLoadingMarker>::loading()))
-    });
+    application.init_state::<LoadingState<AudioLoadingMarker>>();
+    application.init_state::<LoadingState<TextureLoadingMarker>>();
 
     embedded_asset!(application, "cube_baby.png");
+    embedded_asset!(application, "cube_baby_kick_01.wav");
+    embedded_asset!(application, "cube_baby_kick_02.wav");
+    embedded_asset!(application, "cube_baby_kick_03.wav");
+    embedded_asset!(application, "cube_baby_kick_04.wav");
 
-    // Handle application-wide loading state.
+    // Ensure the application fully loads.
     application.init_state::<LoadingState<ApplicationLoadingMarker>>();
-    application.add_systems(Update, {
-        // Attempt to update the application loading state until fully loaded.
-        self::update_application_loading.run_if(in_state(LoadingState::<ApplicationLoadingMarker>::loading()))
-    });
+    application.add_systems(
+        Update,
+        (
+            // Attempt to update the display properties until fully loaded.
+            self::update_display_loading.run_if(in_state(LoadingState::<DisplayLoadingMarker>::loading())),
+            // Attempt to update the audio assets until fully loaded.
+            self::update_audio_loading.run_if(in_state(LoadingState::<AudioLoadingMarker>::loading())),
+            // Attempt to update the texture assets until fully loaded.
+            self::update_texture_loading.run_if(in_state(LoadingState::<TextureLoadingMarker>::loading())),
+            // Attempt to update the application loading state until fully loaded.
+            self::update_application_loading.run_if(in_state(LoadingState::<ApplicationLoadingMarker>::loading())),
+        ),
+    );
     application.add_systems(OnEnter(LoadingState::<ApplicationLoadingMarker>::finished()), {
         // Handle final registration of components.
         self::on_application_load_finished
@@ -172,26 +189,27 @@ pub fn main() -> ExitCode {
 
     // Handle rendering and window motion.
     application.insert_resource(ClearColor(Color::NONE));
-    application.add_systems(FixedUpdate, {
-        // Handle cursor-to-window collision.
-        fixed_update_mouse_collision.run_if(in_state(LoadingState::<ApplicationLoadingMarker>::finished()))
-    });
-    application.add_systems(Update, {
-        // Handle sprite resizing.
-        update_sprite_resizing.run_if(in_state(LoadingState::<ApplicationLoadingMarker>::finished()))
-    });
-    application.add_systems(Update, {
-        // Handle key knocking.
-        update_key_press_knocking.run_if(in_state(LoadingState::<ApplicationLoadingMarker>::finished()))
-    });
-    application.add_systems(Update, {
-        // Handle moving the window.
-        update_window_movement.run_if(in_state(LoadingState::<ApplicationLoadingMarker>::finished()))
-    });
-    application.add_systems(Update, {
-        // Handle rotating the cube baby.
-        update_sprite_rotation.run_if(in_state(LoadingState::<ApplicationLoadingMarker>::finished()))
-    });
+    application.add_event::<CubeBabyKickAudioEvent>();
+    application.add_systems(
+        FixedUpdate,
+        (
+            // Handle cursor-to-window collision.
+            fixed_update_mouse_collision,
+        )
+            .run_if(in_state(LoadingState::<ApplicationLoadingMarker>::finished())),
+    );
+    application.add_systems(
+        Update,
+        (
+            update_volume,
+            update_sprite_resizing,
+            update_key_press_knocking,
+            update_window_movement,
+            update_sprite_rotation,
+            update_kick_audio,
+        )
+            .run_if(in_state(LoadingState::<ApplicationLoadingMarker>::finished())),
+    );
 
     // Return an exit code that is representative of the execution's result.
     match application.run() {
@@ -204,6 +222,15 @@ pub fn main() -> ExitCode {
 pub fn startup_initialize(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2d);
 
+    commands.insert_resource(AudioMetadata {
+        audio_handles: [
+            asset_server.load(concat!("embedded://", env!("CARGO_CRATE_NAME"), "/cube_baby_kick_01.wav")),
+            asset_server.load(concat!("embedded://", env!("CARGO_CRATE_NAME"), "/cube_baby_kick_02.wav")),
+            asset_server.load(concat!("embedded://", env!("CARGO_CRATE_NAME"), "/cube_baby_kick_03.wav")),
+            asset_server.load(concat!("embedded://", env!("CARGO_CRATE_NAME"), "/cube_baby_kick_04.wav")),
+        ],
+        volume: 0.5,
+    });
     commands.insert_resource(TextureMetadata {
         image_handle: asset_server.load(concat!("embedded://", env!("CARGO_CRATE_NAME"), "/cube_baby.png")),
         layout_handle: Handle::default(),
@@ -223,6 +250,17 @@ pub fn update_display_loading(
         display_properties.resolution = UVec2::new(current_monitor.size().width, current_monitor.size().height);
 
         display_state.set(LoadingState::finished());
+    }
+}
+
+/// Attempts to load the assets related to all required audio on application load.
+pub fn update_audio_loading(
+    asset_server: Res<AssetServer>,
+    audio_metadata: Res<AudioMetadata<4>>,
+    mut audio_state: ResMut<NextState<LoadingState<AudioLoadingMarker>>>,
+) {
+    if audio_metadata.audio_handles.iter().all(|audio_handle| asset_server.is_loaded(audio_handle)) {
+        audio_state.set(LoadingState::finished());
     }
 }
 
@@ -252,10 +290,11 @@ pub fn update_texture_loading(
 /// Updates the application's loading state to reflect whether all values are loaded.
 pub fn update_application_loading(
     display_state: Res<State<LoadingState<DisplayLoadingMarker>>>,
+    audio_state: Res<State<LoadingState<AudioLoadingMarker>>>,
     texture_state: Res<State<LoadingState<TextureLoadingMarker>>>,
     mut application_state: ResMut<NextState<LoadingState<ApplicationLoadingMarker>>>,
 ) {
-    if display_state.get().is_finished() && texture_state.get().is_finished() {
+    if display_state.is_finished() && audio_state.is_finished() && texture_state.is_finished() {
         application_state.set(LoadingState::finished());
     }
 }
@@ -291,23 +330,52 @@ pub fn on_application_load_finished(
 pub fn update_key_press_knocking(
     button_input: Res<ButtonInput<KeyCode>>,
     query: Single<(&mut Velocity, &Scale), With<CubeBaby>>,
+    mut kick_event_writer: EventWriter<CubeBabyKickAudioEvent>,
 ) {
     const MIN_STRENGTH: f32 = PUSH_STRENGTH * PUSH_STRENGTH;
     const MAX_STRENGTH: f32 = PUSH_STRENGTH * PUSH_STRENGTH * 4.0;
 
     let (mut velocity, scale) = query.into_inner();
 
-    if button_input
-        .get_just_pressed()
-        .next()
-        .is_some_and(|k| !matches!(k, KeyCode::Period | KeyCode::Comma | KeyCode::Slash))
-    {
+    if button_input.get_just_pressed().next().is_some_and(|key_code| {
+        !matches!(
+            key_code,
+            KeyCode::Minus | KeyCode::Equal | KeyCode::Digit0 | KeyCode::Period | KeyCode::Comma | KeyCode::Slash
+        )
+    }) {
         let x = (fastrand::f32() * 2.0) - 1.0;
         let y = (fastrand::f32() * 2.0) - 1.0;
         let strength = ((fastrand::f32() * MAX_STRENGTH) - MIN_STRENGTH) + MIN_STRENGTH;
         let movement = velocity.normalize_or_zero() + Vec2::new(x, y).normalize_or_zero();
 
         velocity.0 += movement * strength * scale.0;
+
+        kick_event_writer.write(CubeBabyKickAudioEvent);
+    }
+}
+
+/// Handles volume controls.
+pub fn update_volume(
+    button_input: Res<ButtonInput<KeyCode>>,
+    mut audio_metadata: ResMut<AudioMetadata<4>>,
+    mut kick_event_writer: EventWriter<CubeBabyKickAudioEvent>,
+) {
+    let start_volume = audio_metadata.volume;
+
+    if button_input.just_pressed(KeyCode::Minus)
+        && let Some(volume) = audio_metadata.decreased_volume()
+    {
+        audio_metadata.volume = volume;
+    } else if button_input.just_pressed(KeyCode::Equal)
+        && let Some(volume) = audio_metadata.increased_volume()
+    {
+        audio_metadata.volume = volume;
+    } else if button_input.just_pressed(KeyCode::Digit0) {
+        audio_metadata.volume = 0.0;
+    }
+
+    if audio_metadata.volume != start_volume {
+        kick_event_writer.write(CubeBabyKickAudioEvent);
     }
 }
 
@@ -331,6 +399,7 @@ pub fn fixed_update_mouse_collision(
     time: Res<Time>,
     query: Single<(&mut Velocity, &mut PushDelay), With<CubeBaby>>,
     mut cursor_moved_events: EventReader<CursorMoved>,
+    mut kick_event_writer: EventWriter<CubeBabyKickAudioEvent>,
 ) {
     let (mut velocity, mut push_delay) = query.into_inner();
 
@@ -356,6 +425,8 @@ pub fn fixed_update_mouse_collision(
 
         velocity.0 += delta_position;
         push_delay.0 = PUSH_DELAY;
+
+        kick_event_writer.write(CubeBabyKickAudioEvent);
     }
 }
 
@@ -423,5 +494,22 @@ pub fn update_sprite_rotation(query: Single<(&mut Sprite, &mut Transform, &mut D
 
         distance.0 -= SLIDE_SPIN_DISTANCE * SPRITE_SCALE_DEFAULT;
         distance.0 %= SLIDE_SPIN_DISTANCE * SPRITE_SCALE_DEFAULT;
+    }
+}
+
+/// Handles playing kick audio when the cube baby is hit.
+pub fn update_kick_audio(
+    mut commands: Commands,
+    mut hit_events: EventReader<CubeBabyKickAudioEvent>,
+    audio_metadata: Res<AudioMetadata<4>>,
+) {
+    let Some(_) = hit_events.read().last() else { return };
+
+    // Grab a random audio track and play it with the configured volume.
+    if let Some(audio_source_handle) = fastrand::choice(audio_metadata.audio_handles.iter()) {
+        commands.spawn((
+            AudioPlayer(audio_source_handle.clone()),
+            PlaybackSettings::DESPAWN.with_volume(Volume::Linear(audio_metadata.volume)),
+        ));
     }
 }

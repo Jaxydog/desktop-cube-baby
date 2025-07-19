@@ -19,6 +19,27 @@ use bevy::prelude::*;
 
 use crate::{ATLAS_FRAMES, WINDOW_SIZE_DEFAULT};
 
+/// Contains metadata relating to audio sources.
+#[derive(Clone, Debug, PartialEq, Resource)]
+pub struct AudioMetadata<const N: usize> {
+    /// A list of handles to audio files.
+    pub audio_handles: [Handle<AudioSource>; N],
+    /// The global volume percentage.
+    pub volume: f32,
+}
+
+impl<const N: usize> AudioMetadata<N> {
+    /// Returns the next possible volume increase.
+    pub const fn increased_volume(&self) -> Option<f32> {
+        if self.volume < 1.0 { Some((self.volume + 0.1).min(1.0)) } else { None }
+    }
+
+    /// Returns the next possible volume decrease.
+    pub const fn decreased_volume(&self) -> Option<f32> {
+        if self.volume > 0.0 { Some((self.volume - 0.1).max(0.0)) } else { None }
+    }
+}
+
 /// Contains metadata relating to an atlased texture.
 #[derive(Clone, Debug, PartialEq, Eq, Resource)]
 pub struct TextureMetadata {

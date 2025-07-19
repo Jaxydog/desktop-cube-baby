@@ -21,6 +21,7 @@ version = "0.2.2"
 edition = "2024"
 
 [features]
+default = ["multi_threaded", "wayland", "x11"]
 multi_threaded = ["bevy/multi_threaded"]
 visible_console = []
 wayland = ["bevy/wayland"]
@@ -41,6 +42,7 @@ version = "~0.16"
 default-features = false
 features = [
     "bevy_asset",
+    "bevy_audio",
     "bevy_color",
     "bevy_core_pipeline",
     "bevy_render",
@@ -49,6 +51,7 @@ features = [
     "bevy_window",
     "bevy_winit",
     "png",
+    "wav",
 ]
 
 [dependencies.env_logger]

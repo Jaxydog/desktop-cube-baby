@@ -17,10 +17,19 @@ Desktop Cube Baby's latest releases will be available through [this repository's
 You may alternatively download Desktop Cube Baby's source code directly,
 compile, and install it yourself.
 
-Please note that the texture must be extracted manually,
+Please note that the texture and sounds must be extracted manually,
 however,
-as it is not distributed with this repository.
-The extracted file must be placed within `./src/cube_baby.png`.
+as they are not distributed with this repository.
+The extracted files must be placed within `./src/cube_baby.png`
+and `./src/cube_baby_kick_0*.wav`.
+There should be exactly four audio files, labeled `01` through `04`.
+
+These files can be sourced from the game's installation directory,
+with the texture being located within `extracted_resources/resources/gfx/familiar/familiar_cube_baby.png`
+and the audio being located within `extracted_resources/resource/sfx/cubebaby_kick_0*.wav`.
+
+Tools for resource extraction are bundled with the game,
+located within `tools/ResourceExtractor`.
 
 ```sh
 git clone https://github.com/Jaxydog/desktop-cube-baby.git
@@ -40,6 +49,11 @@ You may optionally enable specific feature flags to enable additional functional
 To use these flag(s),
 add `--features` followed by a comma-separated list of flags
 to the `cargo build` command.
+
+By default, the `multi_threaded`, `wayland`, and `x11` flags are enabled.
+
+When building for Windows, the `wayland` and `x11` flags can be safely disabled
+using the `--no-default-features` and `--features multi_threaded` flags.
 
 ## Usage
 
